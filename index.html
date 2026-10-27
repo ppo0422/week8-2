@@ -1,0 +1,1373 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Story Time 과거형</title>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Noto Sans KR", "Apple SD Gothic Neo", "Malgun Gothic", system-ui, sans-serif;
+    background: #fff8ef;
+    color: #2b2b3a;
+    -webkit-tap-highlight-color: transparent;
+  }
+  #app { max-width: 900px; margin: 0 auto; padding: 16px 16px 60px; }
+  button { font-family: inherit; cursor: pointer; border: none; color: inherit; }
+
+  /* 홈 */
+  .home h1 { font-size: 40px; text-align: center; margin: 24px 0 4px; }
+  .sub { text-align: center; font-size: 20px; color: #666; margin: 0 0 28px; }
+  .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 16px; }
+  .story-card {
+    background: #fff; border-radius: 20px; padding: 22px; text-align: left;
+    box-shadow: 0 4px 0 #f0dcc4; transition: transform .1s;
+  }
+  .story-card:active { transform: translateY(3px); box-shadow: 0 1px 0 #f0dcc4; }
+  .story-card .em { font-size: 46px; margin: 8px 0 4px; }
+  .story-card .t { font-size: 23px; font-weight: 800; margin: 4px 0 2px; }
+  .story-card .k { color: #777; font-size: 17px; }
+  .story-card .acts { font-size: 14px; color: #888; margin-top: 10px; line-height: 1.5; }
+  .lv-badge { display: inline-block; padding: 4px 12px; border-radius: 99px; font-weight: 800; font-size: 14px; color: #fff; }
+  .lv1 { background: #22a06b; }
+  .lv2 { background: #5b5bd6; }
+  .lv3 { background: #d9480f; }
+
+  /* 상단 */
+  .top { display: flex; align-items: center; gap: 12px; margin-bottom: 12px; flex-wrap: wrap; }
+  .home-btn { background: #fff; border-radius: 14px; width: 52px; height: 52px; font-size: 24px; box-shadow: 0 3px 0 #f0dcc4; }
+  .top .title { font-size: 23px; font-weight: 800; }
+  .steps { display: flex; gap: 6px; margin-bottom: 16px; }
+  .steps button {
+    flex: 1; padding: 10px 4px; border-radius: 12px; background: #ece6dd;
+    color: #aaa; font-size: 14px; font-weight: 700; min-height: 46px;
+  }
+  .steps .done { background: #d9f2e4; color: #1f8a55; }
+  .steps .active { background: #5b5bd6; color: #fff; }
+
+  .guide {
+    background: #fff; border-left: 6px solid #5b5bd6; border-radius: 12px;
+    padding: 14px 16px; font-size: 18px; line-height: 1.55; margin-bottom: 14px;
+  }
+  .controls { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 14px; align-items: center; }
+  .btn {
+    background: #fff; border-radius: 14px; padding: 12px 18px; font-size: 17px;
+    font-weight: 700; box-shadow: 0 3px 0 #e5d6c3; min-height: 50px;
+  }
+  .btn.primary { background: #5b5bd6; color: #fff; box-shadow: 0 3px 0 #3f3fa8; }
+  .btn:disabled { opacity: .45; cursor: default; }
+
+  /* 이야기 */
+  .story { background: #fff; border-radius: 20px; padding: 12px; box-shadow: 0 4px 0 #f0dcc4; }
+  .sent { display: flex; align-items: flex-start; gap: 10px; padding: 10px; border-radius: 14px; transition: background .2s; }
+  .sent.reading { background: #fff3c4; }
+  .sent.glow { animation: pulse .6s 3; }
+  .spk { background: #eef0ff; border-radius: 12px; width: 46px; height: 46px; font-size: 20px; flex-shrink: 0; }
+  .txt { flex: 1; }
+  .en { font-size: 23px; line-height: 1.6; }
+  .ko { font-size: 17px; color: #7a6a5a; display: none; margin-top: 2px; }
+  .ko.show { display: block; }
+  .kobtn {
+    background: #fff3e6; color: #c26a1d; border-radius: 12px; padding: 0 14px;
+    height: 46px; font-weight: 700; font-size: 16px; flex-shrink: 0;
+  }
+
+  .next {
+    display: block; width: 100%; margin-top: 18px; background: #5b5bd6; color: #fff;
+    font-size: 21px; font-weight: 800; padding: 18px; border-radius: 18px; box-shadow: 0 4px 0 #3f3fa8;
+  }
+  .next.alt { background: #fff; color: #5b5bd6; box-shadow: 0 4px 0 #e5d6c3; }
+
+  /* 단어 누르기 */
+  .find .en { font-size: 24px; line-height: 2; }
+  .w { display: inline-block; padding: 0 4px; border-radius: 8px; cursor: pointer; }
+  .w.found { background: #c9f0d8; color: #11663c; font-weight: 800; }
+  .w.pending { background: #eef0ff; outline: 3px solid #5b5bd6; }
+  .w.wrong { background: #ffd6d6; animation: shake .4s; }
+  .counter { display: flex; align-items: center; gap: 10px; justify-content: space-between; margin-bottom: 12px; flex-wrap: wrap; }
+  .count-box { font-size: 20px; font-weight: 800; background: #fff; padding: 10px 18px; border-radius: 14px; box-shadow: 0 3px 0 #f0dcc4; }
+  .count-box b { color: #1f8a55; font-size: 26px; }
+  .success { background: #d9f2e4; border-radius: 16px; padding: 16px; font-size: 19px; margin-top: 14px; line-height: 1.6; }
+
+  /* 아래 선택 창 */
+  .panel {
+    position: fixed; left: 0; right: 0; bottom: 0; background: #fff; z-index: 10;
+    box-shadow: 0 -6px 24px rgba(0,0,0,.15); border-radius: 22px 22px 0 0; padding: 16px 16px 22px;
+  }
+  .panel-in { max-width: 860px; margin: 0 auto; }
+  .panel-q { font-size: 21px; margin-bottom: 12px; }
+  .panel .close { float: right; background: #f1ece5; border-radius: 10px; padding: 8px 14px; font-weight: 700; font-size: 15px; }
+  .spacer { height: 260px; }
+
+  #toast {
+    position: fixed; top: 16px; left: 50%; transform: translateX(-50%); background: #2b2b3a; color: #fff;
+    padding: 12px 20px; border-radius: 14px; font-size: 17px; z-index: 20; opacity: 0;
+    transition: opacity .2s; pointer-events: none; max-width: 90vw; text-align: center;
+  }
+  #toast.show { opacity: 1; }
+
+  /* 나누기 */
+  .vcards { display: grid; grid-template-columns: repeat(auto-fill, minmax(210px, 1fr)); gap: 12px; margin-bottom: 16px; }
+  .vcard { background: #fff; border-radius: 16px; padding: 14px; box-shadow: 0 3px 0 #f0dcc4; text-align: center; }
+  .vcard.shake { animation: shake .4s; }
+  .vword { font-size: 30px; font-weight: 800; margin-bottom: 10px; }
+  .vbtns { display: flex; gap: 6px; }
+  .vbtns button { flex: 1; padding: 10px 2px; border-radius: 12px; font-size: 15px; font-weight: 800; min-height: 52px; }
+  .b-reg, .b-ed { background: #dbe8ff; color: #1d4ed8 !important; }
+  .b-ied { background: #ede4ff; color: #6d28d9 !important; }
+  .b-irr { background: #ffe4d1; color: #c2410c !important; }
+  .msg { background: #fff0f0; color: #b42318; border-radius: 14px; padding: 12px 16px; font-size: 18px; margin-bottom: 12px; line-height: 1.5; }
+  .bins { display: grid; gap: 12px; }
+  .bin { border-radius: 18px; padding: 14px; min-height: 140px; }
+  .bin.reg, .bin.ed { background: #eaf1ff; border: 3px dashed #93b4f5; }
+  .bin.ied { background: #f5f0ff; border: 3px dashed #c4a8f5; }
+  .bin.irr { background: #fff0e5; border: 3px dashed #f5b48a; }
+  .bin h3 { margin: 0 0 4px; font-size: 20px; }
+  .bin p { margin: 0 0 10px; font-size: 14px; color: #666; }
+  .chip { background: #fff; border-radius: 12px; padding: 8px 12px; margin-bottom: 8px; font-size: 19px; font-weight: 700; }
+  .chip small { display: block; font-size: 13px; color: #888; font-weight: 500; }
+  .ed { color: #1d4ed8; text-decoration: underline; }
+  .chg { color: #c2410c; }
+
+  /* 문제 상자 */
+  .qbox { background: #fff; border-radius: 20px; padding: 20px; box-shadow: 0 4px 0 #f0dcc4; }
+  .qhead { display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+  .when { display: inline-block; background: #fff3e6; color: #c26a1d; padding: 6px 12px; border-radius: 99px; font-weight: 700; font-size: 16px; }
+  .qnum { font-weight: 800; color: #5b5bd6; font-size: 18px; }
+  .retry-badge { display: inline-block; background: #fff3c4; color: #8a6400; padding: 5px 12px; border-radius: 99px; font-weight: 800; font-size: 15px; margin-right: 6px; }
+  .qsent { font-size: 25px; line-height: 1.8; margin: 8px 0 18px; }
+  .blank { display: inline-block; min-width: 90px; border-bottom: 3px solid #5b5bd6; text-align: center; color: #5b5bd6; font-weight: 800; padding: 0 4px; }
+  .tok-filled { color: #1f8a55; font-weight: 800; }
+  .tok-todo { color: #aaa; }
+  .opts { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .opt { background: #f4f2ff; border-radius: 14px; padding: 16px 6px; font-size: 22px; font-weight: 800; min-height: 64px; }
+  .opt.right { background: #c9f0d8; color: #11663c; }
+  .opt.bad { background: #ffd6d6; color: #b42318; }
+  .fb { margin-top: 14px; padding: 14px; border-radius: 14px; font-size: 18px; line-height: 1.6; }
+  .fb.ok { background: #d9f2e4; }
+  .fb.no { background: #ffe9e9; }
+  .again { display: block; margin-top: 6px; color: #8a6400; font-weight: 700; font-size: 16px; }
+  .evidence { display: block; margin-top: 6px; background: #fff; border-radius: 10px; padding: 10px 12px; font-size: 19px; }
+  .evidence small { display: block; color: #7a6a5a; font-size: 15px; margin-top: 2px; }
+  .result { text-align: center; padding: 10px 0; }
+  .result .big { font-size: 52px; }
+  .result .score { font-size: 28px; font-weight: 800; margin: 6px 0; }
+
+  /* 내용 확인 */
+  .check-box { margin-bottom: 14px; }
+  .qko-btn { background: #fff3e6; color: #c26a1d; border-radius: 10px; padding: 6px 12px; font-weight: 700; font-size: 15px; margin-left: 8px; vertical-align: middle; }
+  .qko { display: none; font-size: 16px; color: #7a6a5a; margin: -10px 0 14px; }
+  .qko.show { display: block; }
+
+  /* 철자 완성 */
+  .spell-q { font-size: 30px; font-weight: 800; text-align: center; }
+  .spell-ko { text-align: center; color: #888; font-size: 17px; }
+  .ctx { font-size: 19px; color: #555; text-align: center; margin-top: 10px; line-height: 1.6; }
+  .slots { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin: 20px 0; }
+  .slot { width: 52px; height: 62px; border-radius: 12px; background: #eef0ff; font-size: 28px; font-weight: 800; color: #3f3fa8; }
+  .slot.empty { background: #f4f1ec; border: 2px dashed #ddd; cursor: default; }
+  .tiles { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; margin-bottom: 16px; }
+  .tile { width: 52px; height: 62px; border-radius: 12px; background: #fff3c4; font-size: 28px; font-weight: 800; box-shadow: 0 3px 0 #e8d27a; }
+
+  /* 묻고 답하기 */
+  .qq { font-size: 25px; font-weight: 800; margin: 6px 0 18px; line-height: 1.5; }
+  .did { color: #d9480f; }
+  .ans { display: block; width: 100%; text-align: left; background: #f4f2ff; border-radius: 14px; padding: 16px; font-size: 20px; font-weight: 700; margin-bottom: 10px; min-height: 60px; }
+  .ans:disabled { cursor: default; }
+  .ans.right { background: #c9f0d8; color: #11663c; }
+  .ans.bad { background: #ffd6d6; color: #b42318; }
+
+  /* 정리 */
+  h2.sec { font-size: 20px; margin: 24px 0 10px; }
+  .review-box { background: #fff7d6; border: 3px dashed #f2c94c; border-radius: 18px; padding: 16px; margin-bottom: 18px; }
+  .review-box h2 { margin: 0 0 6px; font-size: 21px; }
+  .review-box p { margin: 0 0 12px; font-size: 16px; color: #6b5a2a; line-height: 1.5; }
+  .review-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 10px; }
+  .review-item { background: #fff; border-radius: 12px; padding: 10px 14px; font-size: 21px; font-weight: 800; }
+  .review-item small { display: block; font-size: 14px; color: #888; font-weight: 500; }
+  .v-reg, .v-ed { background: #dbe8ff; color: #1d4ed8; font-weight: 800; border-radius: 6px; padding: 0 4px; }
+  .v-ied { background: #ede4ff; color: #6d28d9; font-weight: 800; border-radius: 6px; padding: 0 4px; }
+  .v-irr { background: #ffe4d1; color: #c2410c; font-weight: 800; border-radius: 6px; padding: 0 4px; }
+  .legend { display: flex; gap: 12px; font-size: 16px; margin-bottom: 10px; flex-wrap: wrap; align-items: center; }
+  .time-chip { display: inline-block; background: #fff; border: 2px solid #f5b48a; border-radius: 99px; padding: 6px 14px; margin: 0 6px 6px 0; font-size: 18px; font-weight: 700; }
+  .tbl { width: 100%; border-collapse: collapse; background: #fff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 0 #f0dcc4; }
+  .tbl th, .tbl td { padding: 12px; font-size: 18px; border-bottom: 1px solid #f0e6da; text-align: left; vertical-align: top; }
+  .tbl th { background: #f7efe4; font-size: 15px; }
+  .tbl .note { font-size: 14px; color: #8a6a3a; display: block; font-weight: 500; }
+  .tag { padding: 3px 10px; border-radius: 99px; font-size: 14px; font-weight: 800; white-space: nowrap; }
+  .tag.reg, .tag.ed { background: #dbe8ff; color: #1d4ed8; }
+  .tag.ied { background: #ede4ff; color: #6d28d9; }
+  .tag.irr { background: #ffe4d1; color: #c2410c; }
+  .pat { background: #fff; border-radius: 14px; padding: 12px 16px; margin-bottom: 8px; font-size: 18px; box-shadow: 0 3px 0 #f0dcc4; }
+  .pat b { display: block; color: #d9480f; font-size: 15px; margin-bottom: 2px; }
+
+  @keyframes shake { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
+  @keyframes pulse { 50% { background: #ffe58a; } }
+
+  @media (max-width: 600px) {
+    .en { font-size: 20px; }
+    .find .en { font-size: 21px; }
+    .opts { grid-template-columns: 1fr; }
+    .steps button { font-size: 11px; }
+    .bins { grid-template-columns: 1fr !important; }
+    .slot, .tile { width: 42px; height: 52px; font-size: 24px; }
+  }
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="toast"></div>
+
+<script>
+/* =========================================================
+   레벨별 데이터
+   v     : 그 문장 속 과거형 동사 (문장에 나오는 순서대로)
+   check : (레벨1·2) 내용 확인 질문 — a: 정답 번호, ev: 근거 문장 번호
+   err   : (레벨3) 틀린 곳 고치기용 오류
+   ========================================================= */
+const LEVELS = [
+  /* ---------------- LEVEL 1 ---------------- */
+  {
+    lv: 1, emoji: '🌳', title: 'A Fun Saturday', ko: '신나는 토요일',
+    when: '📅 지난 토요일에 있었던 일',
+    time: ['Last Saturday', 'Then', 'at six'],
+    steps: ['read', 'check', 'find', 'sort', 'blank', 'summary'],
+    labels: ['① 읽기', '② 내용 확인', '③ 찾기', '④ 나누기', '⑤ 빈칸', '⑥ 정리'],
+    acts: '내용 확인 · 과거형 찾기 · 규칙/불규칙 나누기 · 빈칸 고르기',
+    groups: [
+      { k: 'reg', name: '규칙 동사', desc: '동사 + -ed', btn: '규칙 (-ed)' },
+      { k: 'irr', name: '불규칙 동사', desc: '모양이 바뀌어요', btn: '불규칙' }
+    ],
+    check: [
+      { q: '가족은 지난 토요일에 어디에 갔나요?', o: ['🌳 공원', '🏫 학교', '🏖️ 바다'], a: 0, ev: 0 },
+      { q: '공원에서 만난 동물은 무엇인가요?', o: ['🐶 강아지', '🐱 고양이', '🐦 새'], a: 0, ev: 5 }
+    ],
+    sentences: [
+      { en: 'Last Saturday, I went to the park with my family.', ko: '지난 토요일, 나는 가족과 함께 공원에 갔어요.', v: ['went'] },
+      { en: 'We walked around the lake.', ko: '우리는 호수 주변을 걸었어요.', v: ['walked'] },
+      { en: 'We played badminton for an hour.', ko: '우리는 한 시간 동안 배드민턴을 쳤어요.', v: ['played'] },
+      { en: 'My dad cooked hot dogs for lunch.', ko: '아빠가 점심으로 핫도그를 요리하셨어요.', v: ['cooked'] },
+      { en: 'I ate two hot dogs!', ko: '나는 핫도그를 두 개나 먹었어요!', v: ['ate'] },
+      { en: 'Then we saw a little puppy.', ko: '그때 우리는 작은 강아지를 봤어요.', v: ['saw'] },
+      { en: 'It ran to me and sat next to me.', ko: '강아지가 나에게 달려와서 내 옆에 앉았어요.', v: ['ran', 'sat'] },
+      { en: 'I smiled at the puppy.', ko: '나는 강아지를 보고 웃었어요.', v: ['smiled'] },
+      { en: 'We came home at six.', ko: '우리는 6시에 집에 왔어요.', v: ['came'] },
+      { en: 'It was a great day!', ko: '정말 멋진 하루였어요!', v: ['was'] }
+    ],
+    verbs: {
+      went:   { base: 'go',    ko: '가다',          type: 'irr', wrong: 'goed' },
+      walked: { base: 'walk',  ko: '걷다',          type: 'reg', wrong: 'walks' },
+      played: { base: 'play',  ko: '(운동을) 하다', type: 'reg', wrong: 'plays' },
+      cooked: { base: 'cook',  ko: '요리하다',      type: 'reg', wrong: 'cooks' },
+      ate:    { base: 'eat',   ko: '먹다',          type: 'irr', wrong: 'eated' },
+      saw:    { base: 'see',   ko: '보다',          type: 'irr', wrong: 'seed' },
+      ran:    { base: 'run',   ko: '달리다',        type: 'irr', wrong: 'runned' },
+      sat:    { base: 'sit',   ko: '앉다',          type: 'irr', wrong: 'sitted' },
+      smiled: { base: 'smile', ko: '미소 짓다',     type: 'reg', wrong: 'smiles', note: 'e로 끝나서 -d만 붙여요.' },
+      came:   { base: 'come',  ko: '오다',          type: 'irr', wrong: 'comed' },
+      was:    { base: 'be',    ko: '~이다, ~있다',  type: 'irr', wrong: 'is', note: 'am / is의 과거형이에요.' }
+    }
+  },
+
+  /* ---------------- LEVEL 2 ---------------- */
+  {
+    lv: 2, emoji: '🎨', title: 'The Missing Picture', ko: '사라진 그림',
+    when: '📅 지난달에 있었던 일',
+    time: ['Last month', 'for weeks', 'On the day of the contest', 'after lunch', 'Then'],
+    steps: ['read', 'check', 'findBase', 'sort', 'convert', 'summary'],
+    labels: ['① 읽기', '② 내용 확인', '③ 찾기+원형', '④ 3갈래', '⑤ 바꿔 쓰기', '⑥ 정리'],
+    acts: '내용 확인 · 과거형 찾고 원형 맞히기 · +ed / y→ied / 불규칙 나누기 · 과거형으로 바꿔 쓰기',
+    groups: [
+      { k: 'ed',  name: '+ed',      desc: '원래 동사에 -ed를 붙여요', btn: '+ed' },
+      { k: 'ied', name: 'y → ied',  desc: 'y를 i로 바꾸고 -ed',        btn: 'y→ied' },
+      { k: 'irr', name: '불규칙',   desc: '모양이 바뀌어요',            btn: '불규칙' }
+    ],
+    check: [
+      { q: "What was in Yuna's picture?", ko: '유나의 그림에는 무엇이 그려져 있었나요?', o: ['the sea', 'a cat', 'her school'], a: 0, ev: 2 },
+      { q: 'Who found the picture?', ko: '누가 그림을 찾았나요?', o: ['a first grader', 'Yuna', 'the art teacher'], a: 0, ev: 6 }
+    ],
+    sentences: [
+      { en: 'Last month, our school had an art contest, and every student made a picture.', ko: '지난달 우리 학교에서 미술 대회가 열렸고, 모든 학생이 그림을 한 점씩 그렸어요.', v: ['had', 'made'] },
+      { en: 'My best friend Yuna wanted to win first prize, so she studied famous artists for weeks.', ko: '내 가장 친한 친구 유나는 1등을 하고 싶어서 몇 주 동안 유명한 화가들을 공부했어요.', v: ['wanted', 'studied'] },
+      { en: 'She tried many different colors and finally finished a beautiful picture of the sea.', ko: '유나는 여러 가지 색을 시도해 보고 마침내 아름다운 바다 그림을 완성했어요.', v: ['tried', 'finished'] },
+      { en: 'On the day of the contest, she brought it to school, but after lunch, it was not in the classroom.', ko: '대회 날 유나는 그림을 학교에 가져왔지만, 점심시간이 지나자 그림이 교실에 없었어요.', v: ['brought', 'was'] },
+      { en: 'Yuna cried, and we looked everywhere for it.', ko: '유나는 울었고, 우리는 그림을 찾으려고 여기저기 살펴봤어요.', v: ['cried', 'looked'] },
+      { en: 'Then I thought about the morning, and suddenly I knew the answer.', ko: '그때 나는 아침에 있었던 일을 생각해 봤고, 갑자기 답을 알게 되었어요.', v: ['thought', 'knew'] },
+      { en: 'A first grader found the picture in the hallway and kept it safe in his classroom.', ko: '1학년 학생이 복도에서 그 그림을 발견해서 자기 교실에 안전하게 보관했던 거예요.', v: ['found', 'kept'] },
+      { en: 'He told us that he wanted to return it to the artist.', ko: '그 아이는 그림을 주인에게 돌려주고 싶었다고 우리에게 말했어요.', v: ['told', 'wanted'] },
+      { en: 'Yuna hurried to the art room just in time, and her picture won first prize!', ko: '유나는 시간에 딱 맞춰 미술실로 서둘러 갔고, 유나의 그림은 1등 상을 받았어요!', v: ['hurried', 'won'] }
+    ],
+    verbs: {
+      had:      { base: 'have',   ko: '가지다, (행사를) 열다', type: 'irr', g: 'irr', bd: ['hate', 'hear'],   wrong: 'haved' },
+      made:     { base: 'make',   ko: '만들다',                type: 'irr', g: 'irr', bd: ['meet', 'move'],   wrong: 'maked' },
+      wanted:   { base: 'want',   ko: '원하다',                type: 'reg', g: 'ed',  bd: ['wait', 'win'],    wrong: 'wants' },
+      studied:  { base: 'study',  ko: '공부하다',              type: 'reg', g: 'ied', bd: ['stay', 'start'],  wrong: 'studyed' },
+      tried:    { base: 'try',    ko: '시도하다',              type: 'reg', g: 'ied', bd: ['tie', 'tell'],    wrong: 'tryed' },
+      finished: { base: 'finish', ko: '끝내다, 완성하다',      type: 'reg', g: 'ed',  bd: ['find', 'fish'],   wrong: 'finishes' },
+      brought:  { base: 'bring',  ko: '가져오다',              type: 'irr', g: 'irr', bd: ['buy', 'break'],   wrong: 'bringed', alt: 'bought', altNote: 'bought는 buy(사다)의 과거형이에요!' },
+      was:      { base: 'be', bl: 'be (am, is)', ko: '~이다, ~있다', type: 'irr', g: 'irr', bd: ['wash', 'win'], wrong: 'were', wrongNote: 'it처럼 하나일 때는 was, we·they일 때는 were를 써요.', alt: 'is', altNote: 'is는 현재형이에요.', note: 'am / is의 과거형이에요.' },
+      cried:    { base: 'cry',    ko: '울다',                  type: 'reg', g: 'ied', bd: ['call', 'clean'],  wrong: 'cryed' },
+      looked:   { base: 'look',   ko: '보다, 찾아보다',        type: 'reg', g: 'ed',  bd: ['like', 'lose'],   wrong: 'looks' },
+      thought:  { base: 'think',  ko: '생각하다',              type: 'irr', g: 'irr', bd: ['teach', 'thank'], wrong: 'thinked', alt: 'taught', altNote: 'taught는 teach(가르치다)의 과거형이에요!' },
+      knew:     { base: 'know',   ko: '알다',                  type: 'irr', g: 'irr', bd: ['need', 'keep'],   wrong: 'knowed', note: 'k는 소리 내지 않아요 [뉴]' },
+      found:    { base: 'find',   ko: '찾다, 발견하다',        type: 'irr', g: 'irr', bd: ['feel', 'fall'],   wrong: 'finded' },
+      kept:     { base: 'keep',   ko: '보관하다, 유지하다',    type: 'irr', g: 'irr', bd: ['kick', 'sleep'],  wrong: 'keeped' },
+      told:     { base: 'tell',   ko: '말하다, 알려 주다',     type: 'irr', g: 'irr', bd: ['talk', 'take'],   wrong: 'telled' },
+      hurried:  { base: 'hurry',  ko: '서두르다',              type: 'reg', g: 'ied', bd: ['hurt', 'hear'],   wrong: 'hurryed' },
+      won:      { base: 'win',    ko: '이기다, (상을) 받다',   type: 'irr', g: 'irr', bd: ['want', 'wash'],   wrong: 'winned', note: 'one과 소리가 같아요 [원]' }
+    }
+  },
+
+  /* ---------------- LEVEL 3 ---------------- */
+  {
+    lv: 3, emoji: '🕵️', title: 'The Stolen Painting', ko: '도난당한 그림',
+    when: '📅 전시회 전날 밤에 있었던 일',
+    time: ['On the night before the exhibition', 'Around midnight', 'The next day', 'When the police came'],
+    steps: ['read', 'fix', 'spell', 'qa', 'summary'],
+    labels: ['① 읽기', '② 틀린 곳 고치기', '③ 철자 완성', '④ 묻고 답하기', '⑤ 정리'],
+    acts: '틀린 과거형 찾아 고치기 · 철자 조립하기 · 질문에 과거형으로 답하기',
+    groups: [],
+    sentences: [
+      { en: 'On the night before the exhibition, a strong wind blew through the village, and the guard shut every window in the museum.',
+        ko: '전시회 전날 밤, 마을에 강한 바람이 불었고, 경비원은 미술관의 모든 창문을 닫았어요.', v: ['blew', 'shut'],
+        err: { p: 'shut', show: 'shutted', opts: ['shut', 'shutted', 'shot'], tip: '현재형과 과거형의 모양이 같은 동사예요. (shot은 shoot의 과거형)' } },
+      { en: 'Around midnight, a thief broke the back door and stole the most valuable painting.',
+        ko: '자정 무렵, 도둑이 뒷문을 부수고 가장 값비싼 그림을 훔쳤어요.', v: ['broke', 'stole'],
+        err: { p: 'stole', show: 'stealed', opts: ['stole', 'stealed', 'stoled'], tip: 'speak → spoke처럼 모음이 o로 바뀌어요.' } },
+      { en: 'The guard woke up at the noise, lit a lamp, and understood the danger at once.',
+        ko: '경비원은 소리에 잠에서 깨어 등불을 켰고, 곧바로 위험을 알아차렸어요.', v: ['woke', 'lit', 'understood'],
+        err: { p: 'understood', show: 'understanded', opts: ['understood', 'understanded', 'understand'], tip: 'stand → stood처럼 바뀌어요.' } },
+      { en: 'Near the wall, he found a piece of canvas that the thief tore as he slid down a rope.',
+        ko: '벽 근처에서 경비원은 도둑이 밧줄을 타고 미끄러져 내려가며 찢어 놓은 캔버스 조각을 발견했어요.', v: ['found', 'tore', 'slid'],
+        err: { p: 'tore', show: 'teared', opts: ['tore', 'teared', 'torn'], tip: 'wear → wore처럼 바뀌어요. torn은 과거분사예요.' } },
+      { en: 'The next day, a nervous man sold an old painting to a shop owner for a surprisingly low price.',
+        ko: '다음 날, 한 초조한 남자가 가게 주인에게 오래된 그림 한 점을 놀랄 만큼 싼 값에 팔았어요.', v: ['sold'],
+        err: { p: 'sold', show: 'selled', opts: ['sold', 'selled', 'sell'], tip: 'tell → told처럼 바뀌어요.' } },
+      { en: 'When the police came, the man threw his bag at them and fell over a chair.',
+        ko: '경찰이 오자 그 남자는 경찰에게 가방을 던지고는 의자에 걸려 넘어졌어요.', v: ['came', 'threw', 'fell'],
+        err: { p: 'threw', show: 'throwed', opts: ['threw', 'throwed', 'thrown'], tip: 'blow → blew처럼 바뀌어요. thrown은 과거분사예요.' } },
+      { en: 'An officer caught him by the arm, and the man shook with fear.',
+        ko: '한 경찰관이 그의 팔을 붙잡았고, 남자는 두려움에 떨었어요.', v: ['caught', 'shook'],
+        err: { p: 'caught', show: 'catched', opts: ['caught', 'catched', 'cought'], tip: 'teach → taught처럼 -aught로 바뀌어요.' } },
+      { en: 'Stealing the painting cost him his freedom.',
+        ko: '그림을 훔친 대가로 그는 자유를 잃었어요.', v: ['cost'],
+        err: { p: 'cost', show: 'costed', opts: ['cost', 'costed', 'costs'], tip: '현재형과 과거형의 모양이 같은 동사예요.' } },
+      { en: 'The painting went back to the museum, and the exhibition began on time.',
+        ko: '그림은 미술관으로 돌아갔고, 전시회는 예정대로 시작되었어요.', v: ['went', 'began'],
+        err: { p: 'began', show: 'begun', opts: ['began', 'begun', 'beginned'], tip: 'begun은 과거분사(have begun)예요.' } }
+    ],
+    verbs: {
+      blew:       { base: 'blow',       ko: '(바람이) 불다',          type: 'irr' },
+      shut:       { base: 'shut',       ko: '닫다',                   type: 'irr', note: '현재형 = 과거형 (shut - shut)' },
+      broke:      { base: 'break',      ko: '부수다, 깨다',           type: 'irr' },
+      stole:      { base: 'steal',      ko: '훔치다',                 type: 'irr' },
+      woke:       { base: 'wake',       ko: '(잠에서) 깨다',          type: 'irr', note: 'wake up → woke up' },
+      lit:        { base: 'light',      ko: '불을 켜다',              type: 'irr' },
+      understood: { base: 'understand', ko: '이해하다, 알아차리다',   type: 'irr', note: 'stand → stood와 같은 변화' },
+      found:      { base: 'find',       ko: '찾다, 발견하다',         type: 'irr' },
+      tore:       { base: 'tear',       ko: '찢다',                   type: 'irr', note: 'torn은 과거분사' },
+      slid:       { base: 'slide',      ko: '미끄러지다',             type: 'irr' },
+      sold:       { base: 'sell',       ko: '팔다',                   type: 'irr' },
+      came:       { base: 'come',       ko: '오다',                   type: 'irr' },
+      threw:      { base: 'throw',      ko: '던지다',                 type: 'irr', note: 'thrown은 과거분사' },
+      fell:       { base: 'fall',       ko: '넘어지다, 떨어지다',     type: 'irr', note: 'feel의 과거형 felt와 헷갈리지 않기!' },
+      caught:     { base: 'catch',      ko: '잡다',                   type: 'irr' },
+      shook:      { base: 'shake',      ko: '흔들다, 떨다',           type: 'irr' },
+      cost:       { base: 'cost',       ko: '(비용·대가를) 치르게 하다', type: 'irr', note: '현재형 = 과거형 (cost - cost)' },
+      went:       { base: 'go',         ko: '가다',                   type: 'irr' },
+      began:      { base: 'begin',      ko: '시작하다',               type: 'irr', note: 'begun은 과거분사' }
+    },
+    spell: ['blew', 'broke', 'stole', 'woke', 'tore', 'slid', 'sold', 'threw', 'fell', 'caught', 'shook'],
+    qa: [
+      { v: 'stole', q: 'What did the thief steal?', a: 'He stole the most valuable painting.', o: ['He stealed the most valuable painting.', 'He stole a lamp from the guard.'], why: 'did + steal(원형) → 대답은 stole(과거형)' },
+      { v: 'lit',   q: 'What did the guard do when he woke up?', a: 'He lit a lamp.', o: ['He light a lamp.', 'He broke a window.'], why: 'did + do → 대답은 light의 과거형 lit' },
+      { v: 'slid',  q: 'How did the thief get down the wall?', a: 'He slid down a rope.', o: ['He slided down a rope.', 'He fell off a ladder.'], why: 'slide → slid' },
+      { v: 'sold',  q: 'What did the nervous man do the next day?', a: 'He sold an old painting.', o: ['He selled an old painting.', 'He bought an old painting.'], why: 'sell → sold' },
+      { v: 'threw', q: 'What did the man throw at the police?', a: 'He threw his bag.', o: ['He throwed his bag.', 'He threw a chair.'], why: 'did + throw(원형) → 대답은 threw(과거형)' },
+      { v: 'began', q: 'Did the exhibition begin on time?', a: 'Yes, it began on time.', o: ['Yes, it begun on time.', 'No, it began late.'], why: 'begin → began (begun은 과거분사)' }
+    ],
+    patterns: [
+      { t: '모양이 그대로', w: 'shut → shut, cost → cost' },
+      { t: '모음이 o로 바뀜', w: 'break → broke, steal → stole, wake → woke, tear → tore' },
+      { t: '-ew로 바뀜', w: 'blow → blew, throw → threw' },
+      { t: '모음만 살짝 바뀜', w: 'fall → fell, shake → shook, slide → slid, begin → began' },
+      { t: '크게 바뀜', w: 'catch → caught, sell → sold, light → lit, understand → understood' }
+    ]
+  }
+];
+
+const GROUP_HINT = {
+  reg: '끝에 -ed가 붙어 있어요.',
+  ed: '원래 동사에 -ed만 붙었어요.',
+  ied: 'y가 i로 바뀌고 -ed가 붙었어요.',
+  irr: '-ed 없이 모양이 바뀌었어요.'
+};
+const TAG = { reg: '규칙', irr: '불규칙', ed: '+ed', ied: 'y→ied' };
+const MAX_RETRY = 2;   // 같은 문제를 다시 내는 최대 횟수
+const RETRY_GAP = 3;   // 틀린 문제를 몇 번째 뒤에 다시 낼지 (3 = 사이에 2문제)
+
+const $app = document.getElementById('app');
+let S = { L: null, readId: 0 };
+
+/* =========================
+   도우미 함수
+   ========================= */
+function tokens(sentence) {
+  return sentence.en.split(' ').map(raw => ({ raw, core: raw.replace(/[^A-Za-z]/g, '').toLowerCase() }));
+}
+function allPairs(L) {
+  const a = [];
+  L.sentences.forEach((s, si) => s.v.forEach(p => a.push({ si, p })));
+  return a;
+}
+function uniqueVerbs(L) {
+  const out = [];
+  L.sentences.forEach(s => s.v.forEach(p => { if (!out.includes(p)) out.push(p); }));
+  return out;
+}
+function shuffle(arr) {
+  const a = arr.slice();
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+function uniq(arr) { return arr.filter((x, i) => arr.indexOf(x) === i); }
+function groupOf(info) { return info.g || info.type; }
+function stepType() { return S.L.steps[S.step]; }
+function pastHTML(p, info) {
+  const g = groupOf(info);
+  if (g === 'ied') return info.base.slice(0, -1) + '<span class="ed">ied</span>';
+  if (info.type === 'reg' && p.startsWith(info.base)) return info.base + '<span class="ed">' + p.slice(info.base.length) + '</span>';
+  return '<span class="chg">' + p + '</span>';
+}
+function shakeEl(id) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.classList.remove('wrong');
+  void el.offsetWidth;
+  el.classList.add('wrong');
+  setTimeout(() => el.classList.remove('wrong'), 500);
+}
+let toastTimer;
+function toast(html) {
+  const el = document.getElementById('toast');
+  el.innerHTML = html;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2200);
+}
+function sentenceWithBlank(si, p, fill) {
+  return tokens(S.L.sentences[si]).map(t => t.core === p
+    ? t.raw.replace(/[A-Za-z]+/, `<span class="blank">${fill}</span>`)
+    : t.raw).join(' ');
+}
+
+/* 틀린 동사 기록 (정리 화면의 '나의 복습 동사') */
+function miss(p) {
+  if (S.missed && !S.missed.includes(p)) S.missed.push(p);
+}
+/* 틀린 문제를 몇 문제 뒤에 다시 넣기 */
+function requeue(list, i, item) {
+  const rc = item.rc || 0;
+  if (rc >= MAX_RETRY) return false;
+  const copy = { ...item, retry: true, rc: rc + 1 };
+  if (copy.opts) copy.opts = shuffle(copy.opts);
+  if (copy.tiles) copy.tiles = shuffle(copy.tiles);
+  list.splice(Math.min(i + RETRY_GAP, list.length), 0, copy);
+  return true;
+}
+function canRequeue(item) { return (item.rc || 0) < MAX_RETRY; }
+function retryBadge(item) { return item.retry ? '<span class="retry-badge">🔁 다시 도전</span>' : ''; }
+
+/* =========================
+   소리 (기기 내장 음성)
+   ========================= */
+function pickVoice() {
+  if (!('speechSynthesis' in window)) return null;
+  const vs = speechSynthesis.getVoices();
+  return vs.find(v => v.lang === 'en-US') || vs.find(v => v.lang && v.lang.startsWith('en')) || null;
+}
+function speak(text, onend) {
+  if (!('speechSynthesis' in window)) { if (onend) onend(); return; }
+  speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(text);
+  u.lang = 'en-US';
+  u.rate = 0.85;
+  const v = pickVoice();
+  if (v) u.voice = v;
+  if (onend) u.onend = onend;
+  speechSynthesis.speak(u);
+}
+if ('speechSynthesis' in window) speechSynthesis.onvoiceschanged = () => {};
+
+function stopReading() {
+  S.readId++;
+  if ('speechSynthesis' in window) speechSynthesis.cancel();
+  document.querySelectorAll('.sent.reading').forEach(el => el.classList.remove('reading'));
+}
+function readAll() {
+  stopReading();
+  const id = S.readId;
+  const sents = S.L.sentences;
+  let i = 0;
+  const go = () => {
+    document.querySelectorAll('.sent.reading').forEach(el => el.classList.remove('reading'));
+    if (id !== S.readId || i >= sents.length) return;
+    const el = document.getElementById('s' + i);
+    if (el) { el.classList.add('reading'); el.scrollIntoView({ block: 'nearest', behavior: 'smooth' }); }
+    speak(sents[i].en, () => { i++; setTimeout(go, 300); });
+  };
+  go();
+}
+function speakSent(i) {
+  stopReading();
+  const el = document.getElementById('s' + i);
+  if (el) el.classList.add('reading');
+  speak(S.L.sentences[i].en, () => { if (el) el.classList.remove('reading'); });
+}
+
+/* =========================
+   화면 이동
+   ========================= */
+function startLevel(i) {
+  S = {
+    L: LEVELS[i], step: 0, maxStep: 0, readId: S.readId + 1,
+    showKo: false, msg: '', shake: '',
+    missed: [],
+    chk: null,
+    found: new Set(), pending: null, sorted: {},
+    quiz: null, conv: null,
+    fixed: new Set(), fixOpts: null, fixPending: null,
+    spell: null, qa: null
+  };
+  render();
+  window.scrollTo(0, 0);
+}
+function goHome() {
+  stopReading();
+  S = { L: null, readId: S.readId + 1 };
+  render();
+  window.scrollTo(0, 0);
+}
+function ensureInit() {
+  const t = stepType();
+  if (t === 'check' && !S.chk) initCheck();
+  if (t === 'blank' && !S.quiz) initBlank();
+  if (t === 'convert' && !S.conv) initConvert();
+  if (t === 'fix' && !S.fixOpts) initFix();
+  if (t === 'spell' && !S.spell) initSpell();
+  if (t === 'qa' && !S.qa) initQA();
+}
+function nextStep() {
+  stopReading();
+  S.step++;
+  S.maxStep = Math.max(S.maxStep, S.step);
+  S.msg = ''; S.pending = null; S.fixPending = null;
+  ensureInit();
+  render();
+  window.scrollTo(0, 0);
+}
+function goStep(n) {
+  if (n > S.maxStep) return;
+  stopReading();
+  S.step = n;
+  S.msg = ''; S.pending = null; S.fixPending = null;
+  ensureInit();
+  render();
+  window.scrollTo(0, 0);
+}
+
+/* =========================
+   그리기
+   ========================= */
+function render() {
+  if (!S.L) { renderHome(); return; }
+  const L = S.L;
+  let html = `
+    <div class="top">
+      <button class="home-btn" onclick="goHome()" aria-label="처음으로">🏠</button>
+      <span class="lv-badge lv${L.lv}">Level ${L.lv}</span>
+      <div class="title">${L.emoji} ${L.title}</div>
+    </div>
+    <div class="steps">
+      ${L.labels.map((name, i) => `<button class="${i === S.step ? 'active' : (i <= S.maxStep ? 'done' : '')}" onclick="goStep(${i})">${name}</button>`).join('')}
+    </div>`;
+  const t = stepType();
+  if (t === 'read') html += viewRead();
+  if (t === 'check') html += viewCheck();
+  if (t === 'find') html += viewFind(false);
+  if (t === 'findBase') html += viewFind(true);
+  if (t === 'sort') html += viewSort();
+  if (t === 'blank') html += viewBlank();
+  if (t === 'convert') html += viewConvert();
+  if (t === 'fix') html += viewFix();
+  if (t === 'spell') html += viewSpell();
+  if (t === 'qa') html += viewQA();
+  if (t === 'summary') html += viewSummary();
+  $app.innerHTML = html;
+}
+
+function renderHome() {
+  $app.innerHTML = `
+    <div class="home">
+      <h1>📖 Story Time</h1>
+      <p class="sub">이야기를 읽으며 <b>과거형</b>을 배워요</p>
+      <div class="cards">
+        ${LEVELS.map((L, i) => `
+          <button class="story-card" onclick="startLevel(${i})">
+            <span class="lv-badge lv${L.lv}">Level ${L.lv}</span>
+            <div class="em">${L.emoji}</div>
+            <div class="t">${L.title}</div>
+            <div class="k">${L.ko}</div>
+            <div class="acts">🧩 ${L.acts}</div>
+          </button>`).join('')}
+      </div>
+    </div>`;
+}
+
+/* items: 다시 도전 문제까지 포함된 목록 */
+function resultView(score, items, retryFn) {
+  const n = items.filter(x => !x.retry).length;
+  const retries = items.filter(x => x.retry).length;
+  const face = score === n ? '🏆' : score >= n - 2 ? '😊' : '💪';
+  return `
+    <div class="qbox result">
+      <div class="big">${face}</div>
+      <div class="score">${n}문제 중 ${score}개를 한 번에 맞혔어요!</div>
+      ${retries ? `<p style="font-size:18px;color:#8a6400">🔁 틀린 문제를 ${retries}번 다시 도전했어요.</p>` : ''}
+      <p style="font-size:18px;color:#666">${score === n ? '완벽해요!' : '틀린 동사는 정리 화면의 <b>나의 복습 동사</b>에 모아 두었어요.'}</p>
+    </div>
+    <div class="row-btns" style="display:flex;gap:10px;flex-wrap:wrap">
+      <button class="next alt" style="flex:1;min-width:200px" onclick="${retryFn}()">🔄 다시 풀기</button>
+      <button class="next" style="flex:1;min-width:200px" onclick="nextStep()">다음 단계 →</button>
+    </div>`;
+}
+
+/* ---------- ① 읽기 (공통) ---------- */
+function viewRead() {
+  const L = S.L;
+  return `
+    <div class="guide">🎧 <b>🔊</b>를 눌러 문장을 듣고, <b>뜻</b>을 눌러 우리말 뜻을 확인해요.<br>이 이야기는 <b>${L.when.replace('📅 ', '')}</b>이에요. 무슨 일이 있었는지 생각하며 읽어 보세요.</div>
+    <div class="controls">
+      <button class="btn primary" onclick="readAll()">▶ 전체 듣기</button>
+      <button class="btn" onclick="stopReading()">⏹ 멈추기</button>
+      <button class="btn" onclick="toggleKo()">${S.showKo ? '뜻 모두 숨기기' : '뜻 모두 보기'}</button>
+    </div>
+    <div class="story">
+      ${L.sentences.map((s, i) => `
+        <div class="sent" id="s${i}">
+          <button class="spk" onclick="speakSent(${i})" aria-label="듣기">🔊</button>
+          <div class="txt">
+            <div class="en">${s.en}</div>
+            <div class="ko ${S.showKo ? 'show' : ''}" id="ko${i}">${s.ko}</div>
+          </div>
+          <button class="kobtn" onclick="toggleOne(${i})">뜻</button>
+        </div>`).join('')}
+    </div>
+    <button class="next" onclick="nextStep()">다 읽었어요! 다음 활동 →</button>`;
+}
+function toggleKo() { S.showKo = !S.showKo; render(); }
+function toggleOne(i) { document.getElementById('ko' + i).classList.toggle('show'); }
+
+/* ---------- 내용 확인 (L1, L2) ---------- */
+function initCheck() {
+  S.chk = S.L.check.map(q => ({
+    opts: shuffle(q.o.map((t, i) => ({ t, i }))),
+    wrong: [],
+    ok: false
+  }));
+}
+function viewCheck() {
+  const L = S.L;
+  const allOk = S.chk.every(c => c.ok);
+  const guide = L.lv === 1
+    ? '🤔 이야기를 잘 이해했는지 확인해요. 답을 맞히면 <b>이야기 속 근거 문장</b>을 보여 줘요.'
+    : '🤔 Did you understand the story? 질문에 답해 보세요. 답을 맞히면 <b>근거 문장</b>을 보여 줘요.';
+  return `
+    <div class="guide">${guide}</div>
+    ${L.check.map((q, qi) => {
+      const c = S.chk[qi];
+      const ev = L.sentences[q.ev];
+      let fb = '';
+      if (c.ok) {
+        fb = `<div class="fb ok">⭕ 맞아요! 이야기 속 근거:
+          <span class="evidence">📖 ${ev.en}<small>${ev.ko}</small></span></div>`;
+      } else if (c.wrong.length) {
+        fb = `<div class="fb no">❌ 다시 골라 보세요. 헷갈리면 이야기를 다시 읽어 봐도 좋아요.</div>`;
+      }
+      return `
+        <div class="qbox check-box">
+          <div class="qq">Q${qi + 1}. ${q.q}${q.ko ? `<button class="qko-btn" onclick="toggleQko(${qi})">뜻</button>` : ''}</div>
+          ${q.ko ? `<div class="qko" id="qko${qi}">${q.ko}</div>` : ''}
+          ${c.opts.map(o => {
+            let cls = '';
+            if (c.ok && o.i === q.a) cls = 'right';
+            else if (c.wrong.includes(o.i)) cls = 'bad';
+            return `<button class="ans ${cls}" onclick="pickCheck(${qi},${o.i})" ${c.ok ? 'disabled' : ''}>${o.t}</button>`;
+          }).join('')}
+          ${fb}
+        </div>`;
+    }).join('')}
+    ${allOk
+      ? `<button class="next" onclick="nextStep()">이제 과거형을 찾으러 가요 →</button>`
+      : `<button class="next alt" onclick="goStep(0)">📖 이야기 다시 보기</button>`}`;
+}
+function toggleQko(qi) { const el = document.getElementById('qko' + qi); if (el) el.classList.toggle('show'); }
+function pickCheck(qi, oi) {
+  const c = S.chk[qi];
+  if (c.ok) return;
+  const q = S.L.check[qi];
+  if (oi === q.a) {
+    c.ok = true;
+    speak(S.L.sentences[q.ev].en);
+  } else if (!c.wrong.includes(oi)) {
+    c.wrong.push(oi);
+  }
+  render();
+}
+
+/* ---------- 찾기 (L1) / 찾기 + 원형 (L2) ---------- */
+function viewFind(withBase) {
+  const L = S.L;
+  const total = allPairs(L).length;
+  const n = S.found.size;
+  const done = n >= total;
+  const guide = withBase
+    ? '🔍 이야기 속 <b>과거형 동사</b>를 찾아 누른 뒤, 그 동사의 <b>원래 모양(동사원형)</b>을 골라 보세요!'
+    : '🔍 이야기 속 <b>과거형 동사</b>를 모두 찾아 눌러 보세요!<br><small>지난 일을 말할 때 쓰는 "~했다"에 해당하는 단어예요.</small>';
+  let panel = '';
+  if (withBase && S.pending) {
+    const pd = S.pending;
+    panel = `
+      <div class="panel"><div class="panel-in">
+        <button class="close" onclick="closePanel()">닫기</button>
+        <div class="panel-q">⭕ <b>${pd.p}</b>는 과거형이 맞아요! 원래 모양은?</div>
+        ${S.msg ? `<div class="msg">${S.msg}</div>` : ''}
+        <div class="opts">${pd.opts.map((o, i) => `<button class="opt" onclick="pickBase(${i})">${o}</button>`).join('')}</div>
+      </div></div>
+      <div class="spacer"></div>`;
+  }
+  return `
+    <div class="guide">${guide}</div>
+    <div class="counter">
+      <div class="count-box">찾은 과거형 <b>${n}</b> / ${total}</div>
+      ${done ? '' : '<button class="btn" onclick="hint()">💡 힌트</button>'}
+    </div>
+    <div class="story find">
+      ${L.sentences.map((s, si) => `
+        <div class="sent" id="s${si}">
+          <div class="txt"><div class="en">${tokens(s).map((t, ti) => {
+            const key = si + ':' + t.core;
+            let cls = '';
+            if (s.v.includes(t.core) && S.found.has(key)) cls = 'found';
+            else if (S.pending && S.pending.key === key) cls = 'pending';
+            return `<span class="w ${cls}" id="w${si}-${ti}" onclick="tapWord(${si},${ti})">${t.raw}</span>`;
+          }).join(' ')}</div></div>
+        </div>`).join('')}
+    </div>
+    ${done ? `
+      <div class="success">🎉 과거형을 모두 찾았어요!<br>
+      💡 <b>-ed가 붙은 것</b>과 <b>모양이 바뀐 것</b>이 섞여 있지요? 다음 단계에서 나눠 봐요.</div>
+      <button class="next" onclick="nextStep()">나누러 가기 →</button>` : ''}
+    ${panel}`;
+}
+function tapWord(si, ti) {
+  const L = S.L;
+  const s = L.sentences[si];
+  const t = tokens(s)[ti];
+  const key = si + ':' + t.core;
+  if (!s.v.includes(t.core)) { shakeEl('w' + si + '-' + ti); return; }
+  if (S.found.has(key)) return;
+  if (stepType() === 'findBase') {
+    const info = L.verbs[t.core];
+    const correct = info.bl || info.base;
+    S.pending = { si, p: t.core, key, correct, opts: shuffle([correct, ...info.bd]) };
+    S.msg = '';
+    speak(t.core);
+    render();
+  } else {
+    S.found.add(key);
+    speak(t.core);
+    render();
+  }
+}
+function pickBase(i) {
+  const pd = S.pending;
+  if (!pd) return;
+  if (pd.opts[i] === pd.correct) {
+    S.found.add(pd.key);
+    speak(S.L.verbs[pd.p].base + ', ' + pd.p);
+    S.pending = null;
+    S.msg = '';
+  } else {
+    miss(pd.p);
+    S.msg = `❌ <b>${pd.opts[i]}</b>는 아니에요. 다시 골라 보세요.`;
+  }
+  render();
+}
+function closePanel() { S.pending = null; S.fixPending = null; S.msg = ''; render(); }
+function hint() {
+  S.L.sentences.forEach((s, si) => {
+    if (s.v.some(p => !S.found.has(si + ':' + p))) {
+      const el = document.getElementById('s' + si);
+      if (el) {
+        el.classList.remove('glow');
+        void el.offsetWidth;
+        el.classList.add('glow');
+        setTimeout(() => el.classList.remove('glow'), 1900);
+      }
+    }
+  });
+}
+
+/* ---------- 나누기 (L1: 2갈래 / L2: 3갈래) ---------- */
+function viewSort() {
+  const L = S.L;
+  const list = uniqueVerbs(L);
+  const left = list.filter(p => !S.sorted[p]);
+  const chip = p => {
+    const info = L.verbs[p];
+    return `<div class="chip">${info.base} → ${pastHTML(p, info)}<small>${info.ko}</small></div>`;
+  };
+  const guide = L.lv === 1
+    ? '🗂️ 찾은 과거형을 두 가지로 나눠 보세요.<br><b style="color:#1d4ed8">규칙</b>: 원래 동사 + <b>-ed</b> &nbsp;/&nbsp; <b style="color:#c2410c">불규칙</b>: 모양이 바뀌어요'
+    : '🗂️ 과거형을 <b>세 갈래</b>로 나눠 보세요.<br><b style="color:#1d4ed8">+ed</b>: 그냥 -ed &nbsp;/&nbsp; <b style="color:#6d28d9">y → ied</b>: y를 i로 바꾸고 -ed &nbsp;/&nbsp; <b style="color:#c2410c">불규칙</b>: 모양이 바뀜';
+  return `
+    <div class="guide">${guide}</div>
+    ${S.msg ? `<div class="msg">${S.msg}</div>` : ''}
+    ${left.length ? `
+      <div class="vcards">
+        ${left.map(p => {
+          const vi = list.indexOf(p);
+          return `
+          <div class="vcard ${S.shake === p ? 'shake' : ''}">
+            <div class="vword">${p}</div>
+            <div class="vbtns">
+              ${L.groups.map((g, gi) => `<button class="b-${g.k}" onclick="sortVerb(${vi},${gi})">${g.btn}</button>`).join('')}
+            </div>
+          </div>`;
+        }).join('')}
+      </div>` : `<div class="success">👏 모두 나눴어요! 불규칙 동사는 모양을 <b>외워야</b> 해요.</div>`}
+    <div class="bins" style="grid-template-columns:repeat(${L.groups.length},1fr)">
+      ${L.groups.map(g => `
+        <div class="bin ${g.k}">
+          <h3>${g.name}</h3><p>${g.desc}</p>
+          ${list.filter(p => S.sorted[p] && groupOf(L.verbs[p]) === g.k).map(chip).join('')}
+        </div>`).join('')}
+    </div>
+    ${left.length ? '' : '<button class="next" onclick="nextStep()">다음 활동 →</button>'}`;
+}
+function sortVerb(vi, gi) {
+  const L = S.L;
+  const p = uniqueVerbs(L)[vi];
+  const info = L.verbs[p];
+  if (groupOf(info) === L.groups[gi].k) {
+    S.sorted[p] = true;
+    S.msg = '';
+    S.shake = '';
+    speak(info.base + ', ' + p);
+  } else {
+    miss(p);
+    S.shake = p;
+    S.msg = `🤔 <b>${p}</b>를 다시 보세요. ${GROUP_HINT[groupOf(info)]}`;
+  }
+  render();
+  setTimeout(() => { S.shake = ''; }, 450);
+}
+
+/* ---------- 빈칸 고르기 (L1) ---------- */
+function initBlank() {
+  const L = S.L;
+  const items = shuffle(allPairs(L)).slice(0, 6).map(it => {
+    const info = L.verbs[it.p];
+    let opts = uniq([it.p, info.base, info.wrong]);
+    if (opts.length < 3) opts.push(info.base + 's');
+    return { si: it.si, p: it.p, opts: shuffle(opts), rc: 0 };
+  });
+  S.quiz = { items, i: 0, score: 0, picked: null, requeued: false, done: false };
+}
+function retryBlank() { initBlank(); render(); window.scrollTo(0, 0); }
+function viewBlank() {
+  const L = S.L;
+  const q = S.quiz;
+  if (q.done) return resultView(q.score, q.items, 'retryBlank');
+  const item = q.items[q.i];
+  const info = L.verbs[item.p];
+  let fb = '';
+  if (q.picked !== null) {
+    const pickedWord = item.opts[q.picked];
+    const right = pickedWord === item.p;
+    const why = info.type === 'irr'
+      ? `<b>${info.base} → ${item.p}</b> : 불규칙 동사라서 모양이 바뀌어요.${info.note ? ' ' + info.note : ''}`
+      : `<b>${info.base} + ed → ${item.p}</b> : 규칙 동사예요.${info.note ? ' ' + info.note : ''}`;
+    let head;
+    if (right) head = item.retry ? '⭕ 이번엔 맞혔어요!' : '⭕ 정답이에요!';
+    else if (pickedWord === info.wrong && info.type === 'irr' && /ed$/.test(pickedWord)) head = `❌ ${info.base}는 불규칙 동사예요. -ed를 붙이면 안 돼요.`;
+    else head = '❌ 지난 일을 말하고 있으니 과거형을 써야 해요.';
+    fb = `<div class="fb ${right ? 'ok' : 'no'}">${head}<br>${why}
+      ${!right && q.requeued ? '<span class="again">🔁 이 문제는 조금 뒤에 다시 나와요.</span>' : ''}</div>
+      <button class="next" onclick="blankNext()">${q.i + 1 < q.items.length ? '다음 문제 →' : '결과 보기 →'}</button>`;
+  }
+  return `
+    <div class="guide">✏️ 빈칸에 알맞은 말을 골라 문장을 완성하세요. 틀린 문제는 조금 뒤에 다시 나와요.</div>
+    <div class="qbox">
+      <div class="qhead"><span class="when">${L.when}</span><span>${retryBadge(item)}<span class="qnum">${q.i + 1} / ${q.items.length}</span></span></div>
+      <div class="qsent">${sentenceWithBlank(item.si, item.p, q.picked !== null ? item.p : '____')}</div>
+      <div class="opts">
+        ${item.opts.map((o, i) => {
+          let cls = '';
+          if (q.picked !== null) {
+            if (o === item.p) cls = 'right';
+            else if (i === q.picked) cls = 'bad';
+          }
+          return `<button class="opt ${cls}" onclick="pickBlank(${i})">${o}</button>`;
+        }).join('')}
+      </div>
+      ${fb}
+    </div>`;
+}
+function pickBlank(i) {
+  const q = S.quiz;
+  if (q.picked !== null) return;
+  q.picked = i;
+  const item = q.items[q.i];
+  if (item.opts[i] === item.p) {
+    if (!item.retry) q.score++;
+    q.requeued = false;
+  } else {
+    miss(item.p);
+    q.requeued = requeue(q.items, q.i, item);
+  }
+  render();
+  speak(S.L.sentences[item.si].en);
+}
+function blankNext() {
+  const q = S.quiz;
+  q.i++; q.picked = null; q.requeued = false;
+  if (q.i >= q.items.length) q.done = true;
+  stopReading(); render(); window.scrollTo(0, 0);
+}
+
+/* ---------- 과거형으로 바꿔 쓰기 (L2) ---------- */
+function initConvert() {
+  const L = S.L;
+  const chosen = shuffle(L.sentences.map((s, i) => i)).slice(0, 5).sort((a, b) => a - b);
+  const items = [];
+  chosen.forEach(si => {
+    L.sentences[si].v.forEach((p, k) => {
+      const info = L.verbs[p];
+      items.push({ si, k, p, opts: shuffle(uniq([p, info.wrong, info.alt || info.base])), rc: 0 });
+    });
+  });
+  S.conv = { items, i: 0, score: 0, picked: null, requeued: false, done: false };
+}
+function retryConvert() { initConvert(); render(); window.scrollTo(0, 0); }
+function convWhy(p, info) {
+  const g = groupOf(info);
+  let w;
+  if (g === 'ed') w = `<b>${info.base} + ed → ${p}</b>`;
+  else if (g === 'ied') w = `<b>${info.base}</b> → y를 i로 바꾸고 -ed → <b>${p}</b>`;
+  else w = `<b>${info.base} → ${p}</b> (불규칙)`;
+  return w + (info.note ? '<br>💡 ' + info.note : '');
+}
+function viewConvert() {
+  const L = S.L;
+  const c = S.conv;
+  if (c.done) return resultView(c.score, c.items, 'retryConvert');
+  const item = c.items[c.i];
+  const s = L.sentences[item.si];
+  const info = L.verbs[item.p];
+  const sentHTML = tokens(s).map(t => {
+    const idx = s.v.indexOf(t.core);
+    if (idx === -1) return t.raw;
+    const vInfo = L.verbs[t.core];
+    if (idx < item.k) return t.raw.replace(/[A-Za-z]+/, m => `<span class="tok-filled">${m}</span>`);
+    if (idx === item.k) {
+      const inside = c.picked !== null ? item.p : `(${vInfo.base})`;
+      return t.raw.replace(/[A-Za-z]+/, `<span class="blank">${inside}</span>`);
+    }
+    return t.raw.replace(/[A-Za-z]+/, `<span class="tok-todo">(${vInfo.base})</span>`);
+  }).join(' ');
+
+  let fb = '';
+  if (c.picked !== null) {
+    const w = item.opts[c.picked];
+    const right = w === item.p;
+    let head;
+    if (right) head = item.retry ? '⭕ 이번엔 맞혔어요!' : '⭕ 정답이에요!';
+    else if (w === info.wrong && info.wrongNote) head = '❌ ' + info.wrongNote;
+    else if (w === info.alt && info.altNote) head = '❌ ' + info.altNote;
+    else if (groupOf(info) === 'ied' && /yed$/.test(w)) head = '❌ 자음 + y로 끝나는 동사는 y를 i로 바꾸고 -ed를 붙여요.';
+    else if (info.type === 'irr' && /ed$/.test(w)) head = `❌ ${info.base}는 불규칙 동사라서 -ed를 붙이지 않아요.`;
+    else head = '❌ 지난 일을 말하고 있으니 과거형을 써야 해요.';
+    fb = `<div class="fb ${right ? 'ok' : 'no'}">${head}<br>${convWhy(item.p, info)}
+      ${!right && c.requeued ? '<span class="again">🔁 이 문제는 조금 뒤에 다시 나와요.</span>' : ''}</div>
+      <button class="next" onclick="convNext()">${c.i + 1 < c.items.length ? '다음 →' : '결과 보기 →'}</button>`;
+  }
+  return `
+    <div class="guide">🔄 괄호 속 동사를 <b>과거형</b>으로 바꿔요. 한 문장에 동사가 두 개씩 있으니 차례대로 골라 보세요. 틀린 문제는 조금 뒤에 다시 나와요.</div>
+    <div class="qbox">
+      <div class="qhead"><span class="when">${L.when}</span><span>${retryBadge(item)}<span class="qnum">${c.i + 1} / ${c.items.length}</span></span></div>
+      <div class="qsent">${sentHTML}</div>
+      <div class="opts">
+        ${item.opts.map((o, i) => {
+          let cls = '';
+          if (c.picked !== null) {
+            if (o === item.p) cls = 'right';
+            else if (i === c.picked) cls = 'bad';
+          }
+          return `<button class="opt ${cls}" onclick="pickConvert(${i})">${o}</button>`;
+        }).join('')}
+      </div>
+      ${fb}
+    </div>`;
+}
+function pickConvert(i) {
+  const c = S.conv;
+  if (c.picked !== null) return;
+  c.picked = i;
+  const item = c.items[c.i];
+  if (item.opts[i] === item.p) {
+    if (!item.retry) c.score++;
+    c.requeued = false;
+  } else {
+    miss(item.p);
+    c.requeued = requeue(c.items, c.i, item);
+  }
+  render();
+  speak(item.p);
+}
+function convNext() {
+  const c = S.conv;
+  c.i++; c.picked = null; c.requeued = false;
+  if (c.i >= c.items.length) c.done = true;
+  render();
+}
+
+/* ---------- 틀린 곳 고치기 (L3) ---------- */
+function initFix() {
+  S.fixOpts = S.L.sentences.map(s => s.err ? shuffle(s.err.opts) : null);
+  S.fixed = new Set();
+  S.fixPending = null;
+}
+function viewFix() {
+  const L = S.L;
+  const total = L.sentences.filter(s => s.err).length;
+  const n = S.fixed.size;
+  const done = n >= total;
+  let panel = '';
+  if (S.fixPending !== null) {
+    const s = L.sentences[S.fixPending];
+    panel = `
+      <div class="panel"><div class="panel-in">
+        <button class="close" onclick="closePanel()">닫기</button>
+        <div class="panel-q">🔧 <b style="color:#b42318">${s.err.show}</b> → 바르게 고치면?</div>
+        ${S.msg ? `<div class="msg">${S.msg}</div>` : ''}
+        <div class="opts">${S.fixOpts[S.fixPending].map((o, i) => `<button class="opt" onclick="pickFix(${i})">${o}</button>`).join('')}</div>
+      </div></div>
+      <div class="spacer"></div>`;
+  }
+  return `
+    <div class="guide">🕵️ 이야기 속에 <b>틀린 과거형 ${total}개</b>가 숨어 있어요. 찾아서 누르고 바르게 고쳐 보세요!<br>
+      <small>맞는 과거형을 누르면 "맞는 말"이라고 알려 줘요.</small></div>
+    <div class="counter">
+      <div class="count-box">고친 곳 <b>${n}</b> / ${total}</div>
+    </div>
+    <div class="story find">
+      ${L.sentences.map((s, si) => `
+        <div class="sent" id="s${si}">
+          <div class="txt"><div class="en">${tokens(s).map((t, ti) => {
+            if (s.err && t.core === s.err.p) {
+              if (S.fixed.has(si)) return `<span class="w found" id="w${si}-${ti}">${t.raw}</span>`;
+              return `<span class="w ${S.fixPending === si ? 'pending' : ''}" id="w${si}-${ti}" onclick="tapFix(${si},${ti})">${t.raw.replace(/[A-Za-z]+/, s.err.show)}</span>`;
+            }
+            return `<span class="w" id="w${si}-${ti}" onclick="tapFix(${si},${ti})">${t.raw}</span>`;
+          }).join(' ')}</div></div>
+        </div>`).join('')}
+    </div>
+    ${done ? `
+      <div class="success">🎉 틀린 곳을 모두 고쳤어요!<br>💡 불규칙 동사에 -ed를 붙이거나, <b>과거분사(begun, torn, thrown)</b>를 과거형 자리에 쓰는 실수가 많아요.</div>
+      <button class="next" onclick="nextStep()">다음 활동 →</button>` : ''}
+    ${panel}`;
+}
+function tapFix(si, ti) {
+  const s = S.L.sentences[si];
+  const t = tokens(s)[ti];
+  if (s.err && t.core === s.err.p && !S.fixed.has(si)) {
+    S.fixPending = si;
+    S.msg = '';
+    render();
+    return;
+  }
+  if (s.v.includes(t.core)) toast(`✅ <b>${t.core}</b>는 바른 과거형이에요. 다른 곳을 찾아보세요!`);
+  shakeEl('w' + si + '-' + ti);
+}
+function pickFix(i) {
+  const si = S.fixPending;
+  if (si === null) return;
+  const s = S.L.sentences[si];
+  const o = S.fixOpts[si][i];
+  if (o === s.err.p) {
+    S.fixed.add(si);
+    S.fixPending = null;
+    S.msg = '';
+    speak(s.en);
+  } else {
+    miss(s.err.p);
+    S.msg = `❌ <b>${o}</b>도 아니에요. 힌트: ${s.err.tip}`;
+  }
+  render();
+}
+
+/* ---------- 철자 완성 (L3) ---------- */
+function initSpell() {
+  const L = S.L;
+  const items = shuffle(L.spell).slice(0, 6).map(p => ({
+    p,
+    tiles: shuffle((p + 'ed').split('').map((c, id) => ({ c, id }))),
+    rc: 0
+  }));
+  S.spell = { items, i: 0, built: [], tries: 0, ok: false, revealed: false, score: 0, done: false, msg: '' };
+}
+function retrySpell() { initSpell(); render(); window.scrollTo(0, 0); }
+function viewSpell() {
+  const L = S.L;
+  const sp = S.spell;
+  if (sp.done) return resultView(sp.score, sp.items, 'retrySpell');
+  const item = sp.items[sp.i];
+  const info = L.verbs[item.p];
+  const si = L.sentences.findIndex(s => s.v.includes(item.p));
+  const tileById = id => item.tiles.find(t => t.id === id);
+  const slotCount = Math.max(item.p.length, sp.built.length);
+  let slots = '';
+  for (let k = 0; k < slotCount; k++) {
+    if (k < sp.built.length) slots += `<button class="slot" onclick="unTile(${k})">${tileById(sp.built[k]).c}</button>`;
+    else slots += `<span class="slot empty"></span>`;
+  }
+  const tiles = item.tiles.filter(t => !sp.built.includes(t.id))
+    .map(t => `<button class="tile" onclick="addTile(${t.id})" ${sp.ok ? 'disabled' : ''}>${t.c}</button>`).join('');
+
+  let fb = '';
+  if (sp.ok) {
+    const willReturn = (sp.tries > 0 || sp.revealed) && canRequeue(item);
+    const head = sp.revealed
+      ? `정답은 <b>${item.p}</b>예요. 꼭 기억해요!`
+      : (sp.tries === 0 ? (item.retry ? '⭕ 이번엔 한 번에 맞혔어요!' : '⭕ 정답이에요!') : '⭕ 맞혔어요!');
+    fb = `<div class="fb ${sp.revealed ? 'no' : 'ok'}">${head}<br><b>${info.base} → ${item.p}</b>${info.note ? '<br>💡 ' + info.note : ''}
+      ${willReturn ? '<span class="again">🔁 이 단어는 조금 뒤에 다시 나와요.</span>' : ''}</div>
+      <button class="next" onclick="spellNext()">${sp.i + 1 < sp.items.length || willReturn ? '다음 단어 →' : '결과 보기 →'}</button>`;
+  } else if (sp.msg) {
+    fb = `<div class="fb no">${sp.msg}</div>`;
+  }
+  return `
+    <div class="guide">🔤 글자 카드를 눌러 <b>과거형</b>을 완성하세요. 잘못 놓은 글자는 다시 누르면 빠져요.<br><small>필요 없는 글자 카드도 섞여 있어요! 한 번에 못 맞힌 단어는 조금 뒤에 다시 나와요.</small></div>
+    <div class="qbox">
+      <div class="qhead"><span></span><span>${retryBadge(item)}<span class="qnum">${sp.i + 1} / ${sp.items.length}</span></span></div>
+      <div class="spell-q">${info.base} → ?</div>
+      <div class="spell-ko">${info.ko}</div>
+      <div class="ctx">${si >= 0 ? sentenceWithBlank(si, item.p, sp.ok ? item.p : '____') : ''}</div>
+      <div class="slots">${slots}</div>
+      <div class="tiles">${tiles}</div>
+      ${sp.ok ? '' : `
+        <div class="controls" style="justify-content:center">
+          <button class="btn" onclick="clearTiles()">↺ 지우기</button>
+          <button class="btn primary" onclick="checkSpell()" ${sp.built.length ? '' : 'disabled'}>확인</button>
+          ${sp.tries >= 2 ? '<button class="btn" onclick="revealSpell()">정답 보기</button>' : ''}
+        </div>`}
+      ${fb}
+    </div>`;
+}
+function addTile(id) { const sp = S.spell; if (sp.ok) return; sp.built.push(id); sp.msg = ''; render(); }
+function unTile(k) { const sp = S.spell; if (sp.ok) return; sp.built.splice(k, 1); render(); }
+function clearTiles() { S.spell.built = []; S.spell.msg = ''; render(); }
+function checkSpell() {
+  const sp = S.spell;
+  const item = sp.items[sp.i];
+  const info = S.L.verbs[item.p];
+  const word = sp.built.map(id => item.tiles.find(t => t.id === id).c).join('');
+  if (word === item.p) {
+    sp.ok = true;
+    if (sp.tries === 0 && !item.retry) sp.score++;
+    speak(info.base + ', ' + item.p);
+  } else {
+    sp.tries++;
+    miss(item.p);
+    sp.msg = /ed$/.test(word)
+      ? `❌ <b>${word}</b>? ${info.base}는 -ed를 붙이지 않는 불규칙 동사예요.`
+      : `❌ <b>${word}</b>는 아니에요. 다시 해 보세요.`;
+  }
+  render();
+}
+function revealSpell() {
+  const sp = S.spell;
+  const item = sp.items[sp.i];
+  const used = [];
+  item.p.split('').forEach(ch => {
+    const t = item.tiles.find(x => x.c === ch && !used.includes(x.id));
+    used.push(t.id);
+  });
+  sp.built = used;
+  sp.ok = true;
+  sp.revealed = true;
+  miss(item.p);
+  speak(S.L.verbs[item.p].base + ', ' + item.p);
+  render();
+}
+function spellNext() {
+  const sp = S.spell;
+  const item = sp.items[sp.i];
+  if (sp.tries > 0 || sp.revealed) requeue(sp.items, sp.i, item);
+  sp.i++;
+  sp.built = []; sp.tries = 0; sp.ok = false; sp.revealed = false; sp.msg = '';
+  if (sp.i >= sp.items.length) sp.done = true;
+  render();
+  window.scrollTo(0, 0);
+}
+
+/* ---------- 묻고 답하기 (L3) ---------- */
+function initQA() {
+  const items = shuffle(S.L.qa).map(q => ({
+    ...q,
+    opts: shuffle([{ t: q.a, k: 'a' }, { t: q.o[0], k: 'form' }, { t: q.o[1], k: 'content' }])
+  }));
+  S.qa = { items, i: 0, picked: null, score: 0, done: false };
+}
+function retryQA() { initQA(); render(); window.scrollTo(0, 0); }
+function viewQA() {
+  const qa = S.qa;
+  if (qa.done) return resultView(qa.score, qa.items, 'retryQA');
+  const item = qa.items[qa.i];
+  let fb = '';
+  if (qa.picked !== null) {
+    const k = item.opts[qa.picked].k;
+    let head;
+    if (k === 'a') head = '⭕ 정답이에요!';
+    else if (k === 'form') head = '❌ 내용은 맞지만 <b>동사 형태</b>가 틀렸어요.';
+    else head = '❌ 동사 형태는 맞지만 <b>이야기 내용</b>과 달라요.';
+    fb = `<div class="fb ${k === 'a' ? 'ok' : 'no'}">${head}<br>정답: <b>${item.a}</b><br>💡 ${item.why}</div>
+      <button class="next" onclick="qaNext()">${qa.i + 1 < qa.items.length ? '다음 질문 →' : '결과 보기 →'}</button>`;
+  }
+  const qHTML = item.q.replace(/\b(did|Did)\b/, '<span class="did">$1</span>');
+  return `
+    <div class="guide">💬 질문을 읽고 알맞은 대답을 고르세요.<br>질문에는 <b class="did">did</b> + <b>동사원형</b>, 대답에는 <b>과거형</b>! 내용도 이야기와 맞아야 해요.</div>
+    <div class="qbox">
+      <div class="qhead"><span class="when">${S.L.when}</span><span class="qnum">${qa.i + 1} / ${qa.items.length}</span></div>
+      <div class="qq">Q. ${qHTML}</div>
+      ${item.opts.map((o, i) => {
+        let cls = '';
+        if (qa.picked !== null) {
+          if (o.k === 'a') cls = 'right';
+          else if (i === qa.picked) cls = 'bad';
+        }
+        return `<button class="ans ${cls}" onclick="pickQA(${i})">${o.t}</button>`;
+      }).join('')}
+      ${fb}
+    </div>`;
+}
+function pickQA(i) {
+  const qa = S.qa;
+  if (qa.picked !== null) return;
+  qa.picked = i;
+  const item = qa.items[qa.i];
+  const k = item.opts[i].k;
+  if (k === 'a') qa.score++;
+  else if (k === 'form') miss(item.v);
+  render();
+  speak(item.a);
+}
+function qaNext() {
+  const qa = S.qa;
+  qa.i++; qa.picked = null;
+  if (qa.i >= qa.items.length) qa.done = true;
+  stopReading(); render(); window.scrollTo(0, 0);
+}
+
+/* ---------- 정리 (공통) ---------- */
+function viewReviewBox() {
+  const L = S.L;
+  if (!S.missed.length) {
+    return `
+      <div class="review-box">
+        <h2>📌 나의 복습 동사</h2>
+        <p>🎉 오늘은 틀린 동사가 하나도 없어요! 다음 시간에 다른 레벨에도 도전해 봐요.</p>
+      </div>`;
+  }
+  return `
+    <div class="review-box">
+      <h2>📌 나의 복습 동사 (${S.missed.length}개)</h2>
+      <p>오늘 한 번이라도 헷갈린 동사예요. <b>공책에 옮겨 적고</b>, 내일과 다음 영어 시간에 한 번씩 다시 확인해 보세요.</p>
+      <div class="review-list">
+        ${S.missed.map(p => {
+          const info = L.verbs[p];
+          return `<div class="review-item">${info.base} → ${pastHTML(p, info)}<small>${info.ko}</small></div>`;
+        }).join('')}
+      </div>
+    </div>`;
+}
+function viewSummary() {
+  const L = S.L;
+  const list = uniqueVerbs(L);
+  const colorOf = info => L.lv === 3 ? 'irr' : groupOf(info);
+  const legend = L.lv === 3
+    ? '<span class="v-irr">과거형</span> 오늘 나온 과거형은 <b>모두 불규칙 동사</b>예요!'
+    : L.groups.map(g => `<span class="v-${g.k}">${g.name}</span>`).join('');
+  return `
+    <div class="guide">🎉 잘했어요! 오늘 헷갈린 동사를 먼저 확인하고, 이야기를 다시 읽어 보세요.</div>
+
+    ${viewReviewBox()}
+
+    <div class="controls">
+      <button class="btn primary" onclick="readAll()">▶ 전체 다시 듣기</button>
+      <button class="btn" onclick="stopReading()">⏹ 멈추기</button>
+    </div>
+    <div class="legend">${legend}</div>
+    <div class="story">
+      ${L.sentences.map((s, si) => `
+        <div class="sent" id="s${si}">
+          <button class="spk" onclick="speakSent(${si})" aria-label="듣기">🔊</button>
+          <div class="txt"><div class="en">${tokens(s).map(t => {
+            if (s.v.includes(t.core)) {
+              const cls = 'v-' + colorOf(L.verbs[t.core]);
+              return t.raw.replace(/[A-Za-z]+/, m => `<span class="${cls}">${m}</span>`);
+            }
+            return t.raw;
+          }).join(' ')}</div></div>
+        </div>`).join('')}
+    </div>
+
+    <h2 class="sec">⏰ 과거를 알려 주는 말</h2>
+    <div>${L.time.map(t => `<span class="time-chip">${t}</span>`).join('')}</div>
+
+    ${L.patterns ? `
+      <h2 class="sec">🧠 불규칙 동사, 패턴으로 묶어 외우기</h2>
+      ${L.patterns.map(pt => `<div class="pat"><b>${pt.t}</b>${pt.w}</div>`).join('')}` : ''}
+
+    <h2 class="sec">📝 오늘 만난 동사</h2>
+    <table class="tbl">
+      <thead><tr><th>원래 모양</th><th>과거형</th><th>뜻</th><th>${L.lv === 3 ? '메모' : '종류'}</th></tr></thead>
+      <tbody>
+        ${list.map(p => {
+          const info = L.verbs[p];
+          const last = L.lv === 3
+            ? `<span style="font-size:15px;color:#8a6a3a">${info.note || ''}</span>`
+            : `<span class="tag ${groupOf(info)}">${TAG[groupOf(info)]}</span>`;
+          return `<tr>
+            <td>${info.base}</td>
+            <td><b>${pastHTML(p, info)}</b>${L.lv !== 3 && info.note ? `<span class="note">${info.note}</span>` : ''}</td>
+            <td>${info.ko}</td>
+            <td>${last}</td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>
+
+    <button class="next" onclick="goHome()">📚 다른 레벨 하러 가기</button>`;
+}
+
+render();
+</script>
+</body>
+</html>
